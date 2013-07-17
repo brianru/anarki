@@ -20,6 +20,8 @@
 
 ; first implementation on page 4
 
+(require "lib/util.arc")
+
 (= machine
   '((init ((c more)))
     (more ((a more)
@@ -39,10 +41,32 @@
           '()))))
   (walker init-state stream))
 
-; (run machine 'init '(c a d a d d r))
-; (run machine 'init '(c a d a d d r r))
+
+; examples:
+; (run machine 'init '(c a d a d d r)) -> t
+; (run machine 'init '(c a d a d d r r)) -> nil
             
-; (run machine init-state stream)
+; second implementation -- page 6 (fig 1)
+(= m
+   (withr (init (fn (stream)
+                     (if (empty stream)
+                       t
+                       (case (car stream) 
+                         c (more (cdr stream)))))
+           more (fn (stream)
+                  (if (empty stream)
+                    t
+                    (case (car stream)
+                      a (more (cdr stream))
+                      d (more (cdr stream))
+                      r (end  (cdr stream)))))
+           end  (fn (stream)
+                  (if (empty stream)
+                    t
+                    (case (car stream)
+                      t nil))))
+     init))
+; thoughts on lazy evaluation:
 ; stream is a lazy list of states of resource
 ; at each state there is an action
 ; the action updates the rsrc
