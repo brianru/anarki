@@ -3,6 +3,9 @@
 (require "lib/web.arc")
 (require "lib/json.ss") ; replace with http://hacks.catdancer.ws/json2.arc
 
+(= redirect_path* "oauth"
+   redirect_uri* "localhost:8080/oauth")
+
 ; primary interface to oauth library
 (mac auth (request resource)
   ; ensure resource is active, if not, return error message
@@ -52,26 +55,34 @@
 ; If authenticated previously, immediately return token with redirect.
 ; If logged in to provider, click authenticate. Redirect to redirect_uri.
 ; If not logged in, log in, click authenticate. Redirect to redirect_uri.
+; TODO get this code working and pass the test
 (def req-auth-code-uri (resource) 
-  (+ (mkheader resource!auth-code-endpoint
-               '((token resource!client-token)
-                 (secret resource!client-secret)
-                 (redirect "httpOMGWTFBBQ"))
-               "GET"))
+  (mkuri resource!auth-code-endpoint '("redirect_uri" "localhost:8080/oauth/")))
   ; provider will send message to auth-callback after user action if necessary,
   ; o/w contains token
-  t)
 
-(defop auth-callback (stuff)
+; example: http://localhost:8080/?code=ebd6373f4f1d38fb6a9b
+(defop auth-code (req)
+  (aif (arg req 'code)
+    (pr it)
+    (pr arg req 'error))
   ; if contains error, update resource state
   ; else, update resource auth-code and call (req-auth-token resource)
-  t)
+  )
 
 (def req-auth-token (resource) 
+  (mkreq resource!auth-token-endpoint
+         '(redirect_uri  redirect_uri*
+           code          resource!auth-code
+           client_id     resource!client_id
+           client_secret resource!client_secret)
+          "POST"))
   ; send request to auth-token-endpoint
   ; parse response
   ;   if successful, update resource state
   ;   else update resource state with error
+
+(def req-resource (resource)
   t)
 
 (mac activep (resource) `(is ,resource!state 'active))
