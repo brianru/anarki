@@ -47,12 +47,13 @@
 ; (run machine 'init '(c a d a d d r r)) -> nil
             
 ; second implementation -- page 6 (fig 1)
+; TODO abstract state/label/target with macro
 (= m
    (withr (init (fn (stream)
-                     (if (empty stream)
-                       t
-                       (case (car stream) 
-                         c (more (cdr stream)))))
+                  (if (empty stream)
+                    t
+                    (case (car stream) 
+                      c (more (cdr stream)))))
            more (fn (stream)
                   (if (empty stream)
                     t
@@ -66,6 +67,68 @@
                     (case (car stream)
                       t nil))))
      init))
+
+; examples:
+; (m '(c a d a d d r)) -> t
+; (m '(c a d a d d r r)) -> nil
+
+
+
+; example call:
+; (automaton init
+;           (init (c more))
+;           (more (a more)
+;                 (d more)
+;                 (r end))
+;           (end accept))
+(mac automaton (i r)
+  `(withr (expand-rules ,r)
+    ,i))
+
+; example call:
+; (expand-rules (init (c more))
+;               (more (a more)
+;                     (d more)
+;                     (r end))
+;               (end accept))
+(mac expand-rules (rs)
+  `(map1 [rule-ex _] ,rs))
+
+; (rule-ex 'more '(a more) '(d more) '(r end))
+; TODO align input/output to be compatible with expand-transitions
+(def rule-ex (r)
+  `((car ,r) (fn (stream)
+     (if (empty stream)
+       t
+       (case (car stream)
+         (expand-transitions (cdr ,r)))))))
+
+; call:
+; (expand-transitions (a more)
+;                     (d more)
+;                     (r end))
+;
+; expansion:
+; (a (more (cdr stream))
+;  d (more (cdr stream))
+;  r (end  (cdr stream)))
+(mac expand-transitions (transition)
+  `(map1 [transition-ex _] ,transition))
+; find a way to pull out the first item for each, second item for each, and populate a list with the correct number of elements  
+
+(def transition-ex (transition)
+  `((caar ,transition) ((cadar ,transition) (cdr stream))))
+
+;(mac defaut (aut) t)
+
+;(defaut ca*dr (stream (o step)) init
+;        init (c more)
+;        more (a more)
+;             (d more)
+;             (r end)
+;        end)
+
+
 ; thoughts on lazy evaluation:
 ; stream is a lazy list of states of resource
 ; at each state there is an action
