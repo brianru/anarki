@@ -94,32 +94,32 @@
 (mac expand-rules (rs)
   `(map1 [rule-ex _] ,rs))
 
-; (rule-ex 'more '(a more) '(d more) '(r end))
-; TODO align input/output to be compatible with expand-transitions
+; (rule-ex (list 'more '(a more) '(d more) '(r end)))
 (def rule-ex (r)
   `((car ,r) (fn (stream)
      (if (empty stream)
        t
        (case (car stream)
-         (expand-transitions (cdr ,r)))))))
+         ,@(expand-transitions `(cdr ,@r)))))))
 
 ; call:
-; (expand-transitions (a more)
-;                     (d more)
-;                     (r end))
-;
+; (expand-transitions '((a more)
+;                       (d more)
+;                       (r end)))
 ; expansion:
 ; (a (more (cdr stream))
 ;  d (more (cdr stream))
 ;  r (end  (cdr stream)))
-(mac expand-transitions (transition)
-  `(map1 [transition-ex _] ,transition))
+; TODO producing an extra set of parens around each case/expr pair
+(mac expand-transitions (ts)
+  `(map1 [transition-ex _] ,ts))
 ; find a way to pull out the first item for each, second item for each, and populate a list with the correct number of elements  
-
 (def transition-ex (transition)
-  `((caar ,transition) ((cadar ,transition) (cdr stream))))
+  `((car ,transition) ((last ,transition) (cdr stream))))
 
-;(mac defaut (aut) t)
+; TODO implement this?
+(mac defaut (name auto) 
+  `(= ,name (automaton ,auto))) 
 
 ;(defaut ca*dr (stream (o step)) init
 ;        init (c more)
