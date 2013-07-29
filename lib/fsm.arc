@@ -110,10 +110,16 @@
 ; (a (more (cdr stream))
 ;  d (more (cdr stream))
 ;  r (end  (cdr stream)))
-; TODO producing an extra set of parens around each case/expr pair
 (mac expand-transitions (ts)
-  `(map1 [transition-ex _] ,ts))
+  `(accum accfn
+     (each x (map1 [transition-ex _] ,ts)
+       (accfn (car x))
+       (accfn (last x)))))
+
 ; find a way to pull out the first item for each, second item for each, and populate a list with the correct number of elements  
+; call: (transition-ex '(a more)
+; expansion:
+; a (more (cdr stream))
 (def transition-ex (transition)
   `((car ,transition) ((last ,transition) (cdr stream))))
 
