@@ -11,12 +11,12 @@
 ;          r -> end
 ;   end  :
 ;
-; (def machine
-;   '((init ((c more)))
-;     (more ((a more)
-;            (d more)
-;            (r end)))
-;     (end)))
+; (defaut m 'init
+;           '((init ((c more)))
+;             (more ((a more)
+;                    (d more)
+;                    (r end)))
+;             (end  (accept))))
 
 ; first implementation on page 4
 
@@ -48,7 +48,7 @@
             
 ; second implementation -- page 6 (fig 1)
 ; TODO abstract state/label/target with macro
-(= m
+(= ma
    (withr (init (fn (stream)
                   (if (empty stream)
                     t
@@ -75,32 +75,42 @@
 
 
 ; example call:
-; (automaton init
-;           (init (c more))
-;           (more (a more)
-;                 (d more)
-;                 (r end))
-;           (end accept))
+; (automaton 'init
+;            '((init (c more))
+;              (more (a more)
+;                    (d more)
+;                    (r end))
+;              (end)))
 (mac automaton (i r)
-  `(withr (expand-rules ,r)
-    ,i))
+  `(withr/p ,(expand-rules r)
+    ,i)) ; ,i returns the function bound to the initial state
 
 ; example call:
-; (expand-rules (init (c more))
-;               (more (a more)
-;                     (d more)
-;                     (r end))
-;               (end accept))
+; (expand-rules '((init (c more))
+;                 (more (a more)
+;                       (d more)
+;                       (r end))
+;                 (end  accept)))
 (mac expand-rules (rs)
   `(map1 [rule-ex _] ,rs))
 
-; (rule-ex (list 'more '(a more) '(d more) '(r end)))
-(def rule-ex (r)
-  `((car ,r) (fn (stream)
-     (if (empty stream)
-       t
-       (case (car stream)
-         ,@(expand-transitions `(cdr ,@r)))))))
+; call:
+; (rule-ex '(more (a more) (d more) (r end)))
+
+; expansion:
+;  more (fn (stream)
+;         (if (empty stream)
+;           t
+;           (case (car stream)
+;             a (more (cdr stream))
+;             d (more (cdr stream))
+;             r (end  (cdr stream)))))
+(mac rule-ex (r)
+  `(list (car ,r) (fn (stream)
+                    (if (empty stream)
+                      t
+                      (case (car stream)
+                        (expand-transitions (cdr ,r)))))))
 
 ; call:
 ; (expand-transitions '((a more)
@@ -119,11 +129,11 @@
 ; find a way to pull out the first item for each, second item for each, and populate a list with the correct number of elements  
 ; call: (transition-ex '(a more)
 ; expansion:
-; a (more (cdr stream))
-(def transition-ex (transition)
-  `((car ,transition) ((last ,transition) (cdr stream))))
+; (a (more (cdr stream)))
+(mac transition-ex (transition)
+  `(list (car ,transition) (list (last ,transition) '(cdr stream))))
 
-; TODO implement this?
+; todo implement this?
 (mac defaut (name auto) 
   `(= ,name (automaton ,auto))) 
 
@@ -133,6 +143,7 @@
 ;             (d more)
 ;             (r end)
 ;        end)
+
 
 
 ; thoughts on lazy evaluation:
