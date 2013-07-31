@@ -29,17 +29,17 @@
            (r end)))
     (end)))
 
-(def run (machine init-state stream)
-  (def walker (state stream)
-    (if (empty stream) ; why "cond" not "if"?
+(def run (machine init-state str)
+  (def walker (state str)
+    (if (empty str) ; why "cond" not "if"?
       t
-      (withs (i (car stream)
+      (withs (i (car str)
               transitions (alref machine state)
               new-state (alref transitions i))
         (if new-state
-          (walker new-state (cdr stream))
+          (walker new-state (cdr str))
           '()))))
-  (walker init-state stream))
+  (walker init-state str))
 
 
 ; examples:
@@ -49,22 +49,22 @@
 ; second implementation -- page 6 (fig 1)
 ; TODO abstract state/label/target with macro
 (= ma
-   (withr (init (fn (stream)
-                  (if (empty stream)
+   (withr (init (fn (str)
+                  (if (empty str)
                     t
-                    (case (car stream) 
-                      c (more (cdr stream)))))
-           more (fn (stream)
-                  (if (empty stream)
+                    (case (car str) 
+                      c (more (cdr str)))))
+           more (fn (str)
+                  (if (empty str)
                     t
-                    (case (car stream)
-                      a (more (cdr stream))
-                      d (more (cdr stream))
-                      r (end  (cdr stream)))))
-           end  (fn (stream)
-                  (if (empty stream)
+                    (case (car str)
+                      a (more (cdr str))
+                      d (more (cdr str))
+                      r (end  (cdr str)))))
+           end  (fn (str)
+                  (if (empty str)
                     t
-                    (case (car stream)
+                    (case (car str)
                       t nil))))
      init))
 
@@ -81,63 +81,62 @@
 ;                    (d more)
 ;                    (r end))
 ;              (end)))
-(mac automaton (i r)
-  `(withr/p (expand-rules ,r)
-    ,i)) ; ,i returns the function bound to the initial state
+(mac automaton (i r) `(withr/p ,(mkrules r) ,i)) 
 
 ; example call:
-; (expand-rules '((init (c more))
+; (mkrules '((init (c more))
 ;                 (more (a more)
 ;                       (d more)
 ;                       (r end))
 ;                 (end  accept)))
-(mac expand-rules (rs)
-  `(map1 [rule-ex _] ,rs))
+(def mkrules (rs) (map1 [mkrul _] rs))
+; todo i think the last problem is mkrul not being accepted here
 
 ; call:
-; (rule-ex '(more (a more) (d more) (r end)))
+; (mkrul '(more (a more) (d more) (r end)))
 
 ; expansion:
-;  more (fn (stream)
-;         (if (empty stream)
+;  more (fn (str)
+;         (if (empty str)
 ;           t
-;           (case (car stream)
-;             a (more (cdr stream))
-;             d (more (cdr stream))
-;             r (end  (cdr stream)))))
-(mac rule-ex (r)
-  `(list (car ,r) (fn (stream)
-                    (if (empty stream)
-                      t
-                      (case (car stream)
-                        (expand-transitions (cdr ,r)))))))
+;           (case (car str)
+;             a (more (cdr str))
+;             d (more (cdr str))
+;             r (end  (cdr str)))))
+(mac mkrul (r)
+  (let mr r
+    `(list (car ,mr) (fn (str)
+                       (if (empty str)
+                         t
+                         (case (car str)
+                           ,@(mktransitions (cdr mr))))))))
 
 ; call:
-; (expand-transitions '((a more)
+; (mktransitions '((a more)
 ;                       (d more)
 ;                       (r end)))
 ; expansion:
-; (a (more (cdr stream))
-;  d (more (cdr stream))
-;  r (end  (cdr stream)))
-(mac expand-transitions (ts)
-  `(accum accfn
-     (each x (map1 [transition-ex _] ,ts)
-       (accfn (car x))
-       (accfn (last x)))))
+; (a (more (cdr str))
+;  d (more (cdr str))
+;  r (end  (cdr str)))
+(def mktransitions (ts) ; todo can i combine these 2?
+  (accum accfn ; todo is the accum really necessary?
+    (each x (map1 [mktransition _] ts)
+      (accfn (car x))
+      (accfn (last x)))))
 
 ; find a way to pull out the first item for each, second item for each, and populate a list with the correct number of elements  
-; call: (transition-ex '(a more)
+; call: (mktransition '(a more)
 ; expansion:
-; (a (more (cdr stream)))
-(mac transition-ex (transition)
-  `(list (car ,transition) (list (last ,transition) '(cdr stream))))
+; (a (more (cdr str)))
+(def mktransition (tn)
+  (list (car tn) (list (last tn) '(cdr str))))
 
 ; todo implement this?
 (mac defaut (name auto) 
   `(= ,name (automaton ,auto))) 
 
-;(defaut ca*dr (stream (o step)) init
+;(defaut ca*dr (str (o step)) init
 ;        init (c more)
 ;        more (a more)
 ;             (d more)
@@ -147,8 +146,8 @@
 
 
 ; thoughts on lazy evaluation:
-; stream is a lazy list of states of resource
+; str is a lazy list of states of resource
 ; at each state there is an action
 ; the action updates the rsrc
-; the fsm takes the next state from the stream
+; the fsm takes the next state from the str
 ; the next state is lazily computed using rsrc at that time
