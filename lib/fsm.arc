@@ -82,7 +82,7 @@
 ;                    (r end))
 ;              (end)))
 (mac automaton (i r)
-  `(withr/p ,(expand-rules r)
+  `(withr/p (expand-rules ,r)
     ,i)) ; ,i returns the function bound to the initial state
 
 ; example call:
