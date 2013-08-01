@@ -73,31 +73,27 @@
 ; (m '(c a d a d d r r)) -> nil
 
 
-; find a way to pull out the first item for each, second item for each, and populate a list with the correct number of elements  
 ; call: (mktransition '(a more)
 ; expansion:
 ; (a (more (cdr str)))
-(def mktransition (tn)
-  (list (car tn) (list (last tn) '(cdr str))))
-
+(def mktransition (tn) (list (car tn) (list (last tn) '(cdr str))))
 
 ; call:
 ; (mktransitions '((a more)
-;                       (d more)
-;                       (r end)))
+;                  (d more)
+;                  (r end)))
 ; expansion:
 ; (a (more (cdr str))
 ;  d (more (cdr str))
 ;  r (end  (cdr str)))
-(def mktransitions (ts) ; todo can i combine these 2?
-  (accum accfn ; todo is the accum really necessary?
+(def mktransitions (ts)
+  (accum accfn ; accum helps splice the result of mktransition
     (each x (map1 mktransition ts)
       (accfn (car x))
       (accfn (last x)))))
 
 ; call:
-; (mkrul '(more (a more) (d more) (r end)))
-
+; (mkrule '(more (a more) (d more) (r end)))
 ; expansion:
 ;  more (fn (str)
 ;         (if (empty str)
@@ -106,13 +102,12 @@
 ;             a (more (cdr str))
 ;             d (more (cdr str))
 ;             r (end  (cdr str)))))
-(mac mkrul (r)
-  (with (s (only.car r)
-         i (only.cdr r))
-    `(list ,s (fn (str)
-                (if (empty str) t
-                  (case (car str)
-                    ,@(mktransitions i)))))))
+(mac mkrule (r)
+  (let i r
+    `(list (car ,i) (fn (str)
+                      (if (empty str) t
+                        (case (car str)
+                          ,@(mktransitions (cdr i))))))))
 
 ; example call:
 ; (automaton 'init
@@ -121,7 +116,7 @@
 ;                    (d more)
 ;                    (r end))
 ;              (end)))
-(mac automaton (i r) `(withr/p ,(map1 [mkrul _] r) ,i))
+(mac automaton (i r) `(withr/p ,(map1 [mkrule _] r) ,i))
 
 ; todo implement this?
 (mac defaut (name auto) 
