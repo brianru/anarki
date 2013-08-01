@@ -73,24 +73,27 @@
 ; (m '(c a d a d d r r)) -> nil
 
 
+; find a way to pull out the first item for each, second item for each, and populate a list with the correct number of elements  
+; call: (mktransition '(a more)
+; expansion:
+; (a (more (cdr str)))
+(def mktransition (tn)
+  (list (car tn) (list (last tn) '(cdr str))))
 
-; example call:
-; (automaton 'init
-;            '((init (c more))
-;              (more (a more)
-;                    (d more)
-;                    (r end))
-;              (end)))
-(mac automaton (i r) `(withr/p ,(mkrules r) ,i)) 
 
-; example call:
-; (mkrules '((init (c more))
-;                 (more (a more)
+; call:
+; (mktransitions '((a more)
 ;                       (d more)
-;                       (r end))
-;                 (end  accept)))
-(def mkrules (rs) (map1 [mkrul _] rs))
-; todo i think the last problem is mkrul not being accepted here
+;                       (r end)))
+; expansion:
+; (a (more (cdr str))
+;  d (more (cdr str))
+;  r (end  (cdr str)))
+(def mktransitions (ts) ; todo can i combine these 2?
+  (accum accfn ; todo is the accum really necessary?
+    (each x (map1 mktransition ts)
+      (accfn (car x))
+      (accfn (last x)))))
 
 ; call:
 ; (mkrul '(more (a more) (d more) (r end)))
@@ -104,33 +107,21 @@
 ;             d (more (cdr str))
 ;             r (end  (cdr str)))))
 (mac mkrul (r)
-  (let mr r
-    `(list (car ,mr) (fn (str)
-                       (if (empty str)
-                         t
-                         (case (car str)
-                           ,@(mktransitions (cdr mr))))))))
+  (with (s (only.car r)
+         i (only.cdr r))
+    `(list ,s (fn (str)
+                (if (empty str) t
+                  (case (car str)
+                    ,@(mktransitions i)))))))
 
-; call:
-; (mktransitions '((a more)
-;                       (d more)
-;                       (r end)))
-; expansion:
-; (a (more (cdr str))
-;  d (more (cdr str))
-;  r (end  (cdr str)))
-(def mktransitions (ts) ; todo can i combine these 2?
-  (accum accfn ; todo is the accum really necessary?
-    (each x (map1 [mktransition _] ts)
-      (accfn (car x))
-      (accfn (last x)))))
-
-; find a way to pull out the first item for each, second item for each, and populate a list with the correct number of elements  
-; call: (mktransition '(a more)
-; expansion:
-; (a (more (cdr str)))
-(def mktransition (tn)
-  (list (car tn) (list (last tn) '(cdr str))))
+; example call:
+; (automaton 'init
+;            '((init (c more))
+;              (more (a more)
+;                    (d more)
+;                    (r end))
+;              (end)))
+(mac automaton (i r) `(withr/p ,(map1 [mkrul _] r) ,i))
 
 ; todo implement this?
 (mac defaut (name auto) 
