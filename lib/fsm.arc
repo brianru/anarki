@@ -72,6 +72,9 @@
 ; (m '(c a d a d d r)) -> t
 ; (m '(c a d a d d r r)) -> nil
 
+; Figure 2
+; completed with help from the Arc Forum
+; http://arclanguage.org/item?id=17916
 
 ; call: (mktransition '(a more)
 ; expansion:
@@ -102,25 +105,24 @@
 ;             a (more (cdr str))
 ;             d (more (cdr str))
 ;             r (end  (cdr str)))))
-(mac mkrule (r)
+(def mkrule (r)
   (let i r
-    `(list (car ,i) (fn (str)
-                      (if (empty str) t
-                        (case (car str)
-                          ,@(mktransitions (cdr i))))))))
+    (list (car i) `(fn (str)
+                     (if (empty str) t
+                       (case (car str)
+                         ,@(mktransitions (cdr i))))))))
 
 ; example call:
-; (automaton 'init
-;            '((init (c more))
-;              (more (a more)
-;                    (d more)
-;                    (r end))
-;              (end)))
+; (automaton init
+;            ((init (c more))
+;             (more (a more)
+;                   (d more)
+;                   (r end))
+;             (end)))
 (mac automaton (i r) `(withr/p ,(map1 [mkrule _] r) ,i))
 
-; todo implement this?
-(mac defaut (name auto) 
-  `(= ,name (automaton ,auto))) 
+(mac defaut (name i r) 
+  `(= ,name (automaton ,i ,r))) 
 
 ;(defaut ca*dr (str (o step)) init
 ;        init (c more)
