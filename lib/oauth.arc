@@ -94,8 +94,6 @@
 
 ; OAuth 2.0 Authentication Code Grant (aka Web) Flow
 
-(def reactivate (resource) t)
-(def kill (resource) t)
 
 ; Integration Testing
 ;

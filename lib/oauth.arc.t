@@ -7,13 +7,16 @@
 (require "lib/unit-test.arc")
 (require "lib/oauth.arc")
 
+(= c-token*  "a10fae451113286074f3"
+   c-secret* "7c8073f503da82a658f4ddd312ff7a30cfd98cd7")
+
 (register-test
   '(suite "OAuth 2.0 client library"c
     ("generate auth code uri"
       (req-auth-code-uri 
         (inst 'resource
-              'client-token "a10fae451113286074f3"
-              'client-secret "7c8073f503da82a658f4ddd312ff7a30cfd98cd7"
+              'client-token c-token*
+              'client-secret c-secret*
               'auth-code-endpoint "https://github.com/login/oauth/authorize"
               'auth-token-endpoint "https://github.com/login/oauth/access_token"
               'state nil
@@ -32,8 +35,8 @@
     ("test generate auth-token request"
       (req-auth-token
         (inst 'resource
-              'client-token "a10fae451113286074f3"
-              'client-secret "7c8073f503da82a658f4ddd312ff7a30cfd98cd7"
+              'client-token c-token*
+              'client-secret c-secret*
               'auth-code-endpoint "https://github.com/login/oauth/authorize"
               'auth-token-endpoint "https://github.com/login/oauth/access_token"
               'state nil
