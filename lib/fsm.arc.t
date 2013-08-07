@@ -7,55 +7,58 @@
 (register-test
   '(suite "fsm.arc"
     ("automaton macro"
-      (macex1 '(automaton 'init '((init (c more))
-                                  (more (a more)
-                                        (d more)
-                                        (r end))
-                                  (end accept))))
-      (withr/p (expand-rules
-                (quote ((init (c more))
-                        (more (a more)
-                              (d more)
-                              (r end))
-                        (end accept))))
-        (quote init)))
+      (macex1 '(automaton init ((init (+ 1 1)
+                                  (c more))
+                                (more (+ 2 2)
+                                  (a more)
+                                  (d more)
+                                  (r end))
+                                (end  (+ 3 3) 
+                                  accept))))
+      (withr/p ((init (fn (str) 
+                        (+ 1 1)
+                        (case (car str)
+                          c (more (cdr str)))))
+                (more (fn (str)
+                        (+ 2 2)
+                        (case (car str)
+                          a (more (cdr str))
+                          d (more (cdr str))
+                          r (end  (cdr str)))))
+                (end  (fn (str)
+                        (+ 3 3)
+                        (case (car str)
+                          nil t))))
+        init))
 
-    ("expand-rules macro"
-      (macex '(expand-rules
-               '((init (c more))
-                 (more (a more)
-                       (d more)
-                       (r end))
-                 (end accept))))
-      (map1 (make-br-fn (rule-ex _)) (quote ((init (c more))
-                                             (more (a more)
-                                                   (d more)
-                                                   (r end))
-                                             (end)))))
-
-    ("rule-ex with 1 transition"
-      (macex '(rule-ex '(init (c more))))
-      (list (car (quote (init (c more)))) (fn (stream) (if (empty stream) nil
-                                                         (case (car stream)
-                                                           (expand-transitions (cdr (quote (init (c more))))))))))
+    ("mkrule with 1 transition"
+      (mkrule '(init nil (c more)))
+      (init (fn (str)
+              nil
+              (case (car str)
+                c (more (cdr str))))))
 
     ("rule-ex with 3 transitions"
-      (macex '(rule-ex '(more (a more) (d more) (r end))))
-      (list (car (quote (more (a more) (d more) (r end)))) (fn (stream)
-                                                             (if (empty stream) nil
-                                                               (case (car stream)
-                                                                 (expand-transitions (cdr (quote (more (a more) (d more) (r end))))))))))
+      (mkrule '(more nil (a more) (d more) (r end)))
+      (more (fn (str)
+              nil
+              (case (car str)
+                a (more (cdr str))
+                d (more (cdr str))
+                r (end  (cdr str))))))
 
-    ("expand-transitions"
+    ("make end state"
+      (mkrule '(end nil accept))
+      (end (fn (str) nil
+             (case (car str)
+               nil t))))
+
+    ("make transitions (body of case block"
       ; use macex1 because accfn is bound to a unique name
-      (macex1 '(expand-transitions '((a more) (d more) (r end))))
-      (accum accfn
-        (each x (map1 (make-br-fn (transition-ex _)) (quote ((a more) (d more) (r end))))
-          (accfn (car x))
-          (accfn (last x)))))
-
-    ("transition-ex"
-      (macex '(transition-ex '(a more)))
-      (list (car (quote (a more))) (list (last (quote (a more))) (quote (cdr stream)))))))
+      (mktns '((a more) (d more) (r end)))
+      (a (more (cdr str))
+       d (more (cdr str))
+       r (end  (cdr str))))))
 
 (run-all-tests)
+
